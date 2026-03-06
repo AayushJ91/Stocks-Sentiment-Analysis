@@ -1,0 +1,52 @@
+# Virtual Environment
+MyEnv/
+venv/
+env/
+ENV/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.eggs/
+*.egg-info/
+dist/
+build/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data and Logs
+Data/
+data/
+logs/
+*.log
+
+# Cache
+.pytest_cache/
+.mypy_cache/
+
+# Environment variables
+.env
+.env.local
+
+# ML models
+Trials/stock_bert_model/
+*.safetensors
