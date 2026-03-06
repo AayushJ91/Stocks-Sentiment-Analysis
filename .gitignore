@@ -50,3 +50,5 @@ logs/
 # ML models
 Trials/stock_bert_model/
 *.safetensors
+
+Trials/Data
