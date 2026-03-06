@@ -16,12 +16,6 @@ session = requests.Session()
 session.headers.update(HEADERS_PAGES)
 
 
-mc_base_url = "https://www.moneycontrol.com/news/tags/reliance-industries/news/"
-stock_name = "RI"
-year = "2026"
-
-url = f"https://www.moneycontrol.com/stocks/company_info/stock_news.php?sc_id={stock_name}&durationType=Y&Year={2026}"
-
 def headlines_extractor(url):
     page = 1
     all_news = []
@@ -29,11 +23,12 @@ def headlines_extractor(url):
 
     while True:
         if page == 1:
-            using_url = url + "/"
+            using_url = url+"/"
         else:
             using_url = f"{url}/page-{page}/"
 
         print(f"Scraping page {page}: {using_url}")
+        # print(f"hi")
 
         response = session.get(using_url, timeout=10)
 
@@ -71,4 +66,141 @@ def headlines_extractor(url):
             break
 
         page += 1
-        return all_news
+
+    return all_news
+
+
+from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
+
+
+def headlines_extractor_playwright(base_url):
+
+    all_news = []
+    seen_links = set()
+    page = 1
+
+    with sync_playwright() as p:
+
+        browser = p.chromium.launch(headless=True)
+        page_browser = browser.new_page()
+
+        while True:
+
+            if page == 1:
+                url = base_url
+            else:
+                url = f"{base_url}/page-{page}/"
+
+            print(f"Scraping page {page}: {url}")
+
+            page_browser.goto(url, timeout=60000)
+
+            html = page_browser.content()
+            soup = BeautifulSoup(html, "html.parser")
+
+            articles = soup.find_all("li", class_="clearfix")
+
+            if not articles:
+                print("No articles found. Stopping.")
+                break
+
+            new_found = False
+
+            for article in articles:
+
+                headline_tag = article.find("h2")
+                link_tag = article.find("a", href=True)
+
+                if headline_tag and link_tag:
+
+                    link = link_tag["href"]
+
+                    if link not in seen_links:
+
+                        seen_links.add(link)
+                        new_found = True
+
+                        all_news.append({
+                            "headline": headline_tag.text.strip(),
+                            "link": link
+                        })
+
+            if not new_found:
+                print("Reached last page.")
+                break
+
+            page += 1
+
+        browser.close()
+
+    return all_news
+
+import asyncio
+asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+from playwright.async_api import async_playwright
+from bs4 import BeautifulSoup
+
+
+async def headlines_extractor_playwright_asyncio(base_url):
+
+    all_news = []
+    seen_links = set()
+    page_no = 1
+
+    async with async_playwright() as p:
+
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+
+        while True:
+
+            if page_no == 1:
+                url = base_url
+            else:
+                url = f"{base_url}/page-{page_no}/"
+
+            print(f"Scraping page {page_no}: {url}")
+
+            await page.goto(url)
+
+            html = await page.content()
+
+            soup = BeautifulSoup(html, "html.parser")
+
+            articles = soup.find_all("li", class_="clearfix")
+
+            if not articles:
+                print("No articles found. Stopping.")
+                break
+
+            new_found = False
+
+            for article in articles:
+
+                headline_tag = article.find("h2")
+                link_tag = article.find("a", href=True)
+
+                if headline_tag and link_tag:
+
+                    link = link_tag["href"]
+
+                    if link not in seen_links:
+
+                        seen_links.add(link)
+                        new_found = True
+
+                        all_news.append({
+                            "headline": headline_tag.text.strip(),
+                            "link": link
+                        })
+
+            if not new_found:
+                print("Reached last page.")
+                break
+
+            page_no += 1
+
+        await browser.close()
+
+    return all_news
