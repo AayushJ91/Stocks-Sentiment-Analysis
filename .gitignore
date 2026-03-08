@@ -52,3 +52,6 @@ Trials/stock_bert_model/
 *.safetensors
 
 Trials/Data
+
+# Excel_file
+.xlsx

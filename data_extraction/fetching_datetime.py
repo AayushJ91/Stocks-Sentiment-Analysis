@@ -6,6 +6,7 @@ from datetime import datetime
 import pytz
 import uuid
 import json
+import csv
 from pathlib import Path
 
 HEADERS = {
@@ -145,3 +146,24 @@ def structuring_data(news_list, name):
     Path('Data/raw/moneycontrol/').mkdir(parents=True, exist_ok=True)
     with open(f'Data/raw/moneycontrol/{name}.json','w', encoding='utf-8') as f:
         json.dump(news_records, f, indent=10, ensure_ascii=False)
+
+    with open(f'Data/raw/moneycontrol/{name}.json') as file:
+        d = json.load(file)
+
+
+
+def jsonTocsv(name):
+    with open(f'Data/raw/moneycontrol/{name}.json') as file:
+        d = json.load(file)
+    Path('Data/processed/extracted_news/').mkdir(parents=True, exist_ok=True)
+    present_df = open(f'Data/processed/extracted_news/{name}.csv', "w", newline='')
+    cw = csv.writer(present_df)
+    c = 0
+    for data in d:
+        if c == 0:
+            header = data.keys()
+            cw.writerow(header)
+            c += 1
+        cw.writerow(data.values())
+
+    present_df.close()
