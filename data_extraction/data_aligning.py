@@ -31,7 +31,7 @@ def extracting_prices(stock_name):
     Returns
     -------
     None
-        Saves data to Data/raw/yahoo/{stock_name}_yahoo.csv
+        Saves data to stocks_data/raw/yahoo/{stock_name}_yahoo.csv
         
     Raises
     ------
@@ -47,13 +47,13 @@ def extracting_prices(stock_name):
         stock_tick = stock_dict.loc[stock_dict["Company Name"] == stock_name, "Stock Name"].values[0]
         logger.info(f"Stock ticker: {stock_tick}")
         data = yf.download(stock_tick, period='10y', multi_level_index=False)
-        data.to_csv(f"Data/raw/yf_prices/{stock_name}_yahoo.csv")
-        logger.info(f"Saved price data to Data/raw/yahoo/{stock_name}_yahoo.csv ({len(data)} records)")
+        data.to_csv(f"stocks_data/raw/yf_prices/{stock_name}_yahoo.csv")
+        logger.info(f"Saved price data to stocks_data/raw/yahoo/{stock_name}_yahoo.csv ({len(data)} records)")
     except Exception as e:
         logger.error(f"Error extracting prices for {stock_name}: {e}", exc_info=True)
 
-price_base_path = "Data/raw/yf_prices"
-news_base_path = "Data/raw/news"
+price_base_path = "stocks_data/raw/yf_prices"
+news_base_path = "stocks_data/raw/news"
 
 
 def aligning_csv(stock_name, price_base_path=price_base_path, news_base_path=news_base_path):
@@ -69,14 +69,14 @@ def aligning_csv(stock_name, price_base_path=price_base_path, news_base_path=new
     stock_name : str
         Stock identifier (used to find files: {stock_name}.csv and {stock_name}_yahoo.csv)
     price_base_path : str, optional
-        Path to directory containing Yahoo Finance price data (default: "Data/raw/yahoo")
+        Path to directory containing Yahoo Finance price data (default: "stocks_data/raw/yf_prices")
     news_base_path : str, optional
-        Path to directory containing news CSV files (default: "Data/raw/CSVs")
+        Path to directory containing news CSV files (default: "stocks_data/raw/news")
         
     Returns
     -------
     None
-        Saves aligned data to Data/aligned/{stock_name}_aligned.csv
+        Saves aligned data to stocks_data/aligned/{stock_name}_aligned.csv
         
     Output Columns
     -------
@@ -285,9 +285,9 @@ def aligning_csv(stock_name, price_base_path=price_base_path, news_base_path=new
     # print(aligned_df.head)
 
     # save
-    aligned_df.to_csv(f"Data/aligned/{stock_name}_aligned.csv", index=False)
+    aligned_df.to_csv(f"stocks_data/aligned/{stock_name}_aligned.csv", index=False)
     logger.info(f"Alignment complete: {len(records)} aligned records, {len(missed_urls)} missed")
-    logger.info(f"Saved to Data/aligned/{stock_name}_aligned.csv")
+    logger.info(f"Saved to stocks_data/aligned/{stock_name}_aligned.csv")
     if missed_urls:
         logger.warning(f"Missed {len(missed_urls)} entries - check logs for details")
 
@@ -466,5 +466,5 @@ def aligning_csv_1(stock_name, price_base_path=price_base_path, news_base_path=n
         logger.info(f"  {count:4d} rows — {reason}")
 
     aligned_df = pd.DataFrame(records)
-    aligned_df.to_csv(f"Data/aligned/{stock_name}_aligned.csv", index=False)
-    logger.info(f"Saved to Data/aligned/{stock_name}_aligned.csv")
+    aligned_df.to_csv(f"stocks_data/aligned/{stock_name}_aligned.csv", index=False)
+    logger.info(f"Saved to stocks_data/aligned/{stock_name}_aligned.csv")

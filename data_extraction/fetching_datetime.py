@@ -193,7 +193,7 @@ def structuring_data(news_list, name):
 
 
 
-def save_news_records_to_csv(news_records, name, csv_path='Data/raw/news/'):
+def save_news_records_to_csv(news_records, name, csv_path='stocks_data/raw/news/'):
     """
     Converts a list of news records directly to a CSV file.
     
@@ -201,7 +201,7 @@ def save_news_records_to_csv(news_records, name, csv_path='Data/raw/news/'):
         news_records (list): List of news record dictionaries to save
         name (str): Identifier for the news source (used for filename)
         csv_path (str): Directory path where the output CSV file should be saved. 
-                       Defaults to 'Data/raw/CSVs/'
+                       Defaults to 'stocks_data/raw/CSVs/'
     
     Returns:
         None. Saves records to {csv_path}/{name}.csv
@@ -233,16 +233,16 @@ def save_news_records_to_csv(news_records, name, csv_path='Data/raw/news/'):
         logger.error(f"Error saving records to CSV: {e}", exc_info=True)
 
 
-def jsonTocsv(name, json_path='Data/raw/moneycontrol/', csv_path='Data/raw/CSVs/'):
+def jsonTocsv(name, json_path='stocks_data/raw/moneycontrol/', csv_path='stocks_data/raw/CSVs/'):
     """
     Converts a JSON file containing news records to a CSV file.
     
     Args:
         name (str): Identifier for the news source (used for filename)
         json_path (str): Directory path where the input JSON file is located. 
-                        Defaults to 'Data/raw/moneycontrol/'
+                        Defaults to 'stocks_data/raw/moneycontrol/'
         csv_path (str): Directory path where the output CSV file should be saved. 
-                       Defaults to 'Data/processed/extracted_news/'
+                       Defaults to 'stocks_data/processed/extracted_news/'
     
     Returns:
         None. Saves converted records to {csv_path}/{name}.csv
