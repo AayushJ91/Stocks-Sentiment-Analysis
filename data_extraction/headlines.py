@@ -21,6 +21,12 @@ session.headers.update(HEADERS_PAGES)
 
 
 def headlines_extractor(url):
+    """
+    will go to every article of the specified news article on money control and fetch the link of the each and every article.
+
+    input: url of the news of that particle ticker
+    output: a lsit of links
+    """
     page = 1
     all_news = []
     seen_links = set()
