@@ -2,23 +2,40 @@ import pandas as pd
 from datetime import time, timedelta, date
 import yfinance as yf
 from pathlib import Path
+import logging
+from .logger import setup_logger
+
+logger = setup_logger("data_aligner")
 
 stock_dict = pd.read_excel("stock_dict.xlsx")
 def extracting_prices(stock_name):
-    stock_tick = stock_dict.loc[stock_dict["Company Name"] == stock_name, "Stock Name"].values[0]
-    print("stock_tick",stock_tick)
-    data = yf.download(stock_tick, period='3y', multi_level_index=False)
-    data.to_csv(f"Data/raw/yahoo/{stock_name}_yahoo.csv")
+    logger.info(f"Downloading stock data for: {stock_name}")
+    try:
+        stock_tick = stock_dict.loc[stock_dict["Company Name"] == stock_name, "Stock Name"].values[0]
+        logger.info(f"Stock ticker: {stock_tick}")
+        data = yf.download(stock_tick, period='3y', multi_level_index=False)
+        data.to_csv(f"Data/raw/yahoo/{stock_name}_yahoo.csv")
+        logger.info(f"Saved price data to Data/raw/yahoo/{stock_name}_yahoo.csv ({len(data)} records)")
+    except Exception as e:
+        logger.error(f"Error extracting prices for {stock_name}: {e}", exc_info=True)
 
 price_base_path = "Data/raw/yahoo"
 news_base_path = "Data/processed/extracted_news"
 
 
 def aligning_csv(stock_name):
+    logger.info(f"Starting alignment for stock: {stock_name}")
+    
     price_path = price_base_path+"/"+stock_name+"_yahoo.csv"
     news_path = news_base_path+"/"+stock_name+".csv"
-    price_df = pd.read_csv(price_path)
-    news_df = pd.read_csv(news_path)
+    
+    try:
+        price_df = pd.read_csv(price_path)
+        news_df = pd.read_csv(news_path)
+        logger.info(f"Loaded {len(price_df)} price records and {len(news_df)} news records")
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {e}")
+        return
 
     # ======================
     # DATETIME PROCESSING
@@ -94,26 +111,24 @@ def aligning_csv(stock_name):
     for _, row in news_df.iterrows():
 
         news_dt = row["news_datetime"]
-        # print(count)
         try:
             event_date = get_event_date(news_dt) # getting the price date of yahoo finance
         except ValueError:
-            print("Skipping entry: returned None")
+            logger.warning(f"Skipping entry: returned None - {row['headline'][:50]}")
             missed_urls.append({"url" : row["link"],
                                 "error" : "returned None"})
             continue
         if event_date not in price_df.index:
-            print("Skipping entry: News date not in pride df")
+            logger.debug(f"Skipping entry: News date not in price df - {row['headline'][:50]}")
             missed_urls.append({"url" : row["link"],
                                "error" : "news date not matched with price date"})
             continue
 
-        # print(event_date)
         try:
             if latest_date.date() - event_date < timedelta(days=3):
                 continue
         except AttributeError:
-            print("Skipping entry: news_datetime is None")
+            logger.warning(f"Skipping entry: news_datetime is None - {row['link']}")
             missed_urls.append(row["link"])
             continue 
 
@@ -151,4 +166,8 @@ def aligning_csv(stock_name):
     # print(aligned_df.head)
 
     # save
-    aligned_df.to_csv(F"Data/processed/aligned/{stock_name}_aligned.csv", index=False)
+    aligned_df.to_csv(f"Data/processed/aligned/{stock_name}_aligned.csv", index=False)
+    logger.info(f"Alignment complete: {len(records)} aligned records, {len(missed_urls)} missed")
+    logger.info(f"Saved to Data/processed/aligned/{stock_name}_aligned.csv")
+    if missed_urls:
+        logger.warning(f"Missed {len(missed_urls)} entries - check logs for details"

@@ -7,7 +7,11 @@ import pytz
 import uuid
 import json
 import csv
+import logging
 from pathlib import Path
+from .logger import setup_logger
+
+logger = setup_logger("data_fetcher")
 
 HEADERS = {
     "User-Agent": (
@@ -77,18 +81,22 @@ def fetch_article_soup(url):
         return BeautifulSoup(response.text, "html.parser")
 
     except TooManyRedirects:
-        print("Redirect loop detected:", url)
+        logger.warning(f"Redirect loop detected: {url}")
         return None
 
     except requests.RequestException as e:
-        print("Request failed:", url, e)
+        logger.error(f"Request failed: {url} - {e}")
         return None
     
 
 def structuring_data(news_list, name):
-    # missed_urls = []
     news_records = []
     article_count = 0
+    failed_fetches = 0
+    date_missing = 0
+    
+    logger.info(f"Starting to structure {len(news_list)} articles for '{name}'")
+    
     for news in news_list:
         article_count += 1
 
@@ -97,6 +105,8 @@ def structuring_data(news_list, name):
         soup = fetch_article_soup(article_url)
 
         if soup is None:
+            failed_fetches += 1
+            logger.warning(f"Failed to fetch article {article_count}: {article_url}")
             news_records.append({
                 "news_id": str(uuid.uuid4()),
                 "headline": headline,
@@ -110,12 +120,12 @@ def structuring_data(news_list, name):
                 "status": "fetch_failed"
             })
             continue
-        # print("mid")
         # 🔹 extract date from article page
         raw_date_text, news_datetime = extract_moneycontrol_date(soup)
 
-        # print(news_datetime.date())
-
+        if not news_datetime:
+            date_missing += 1
+            logger.debug(f"Date missing for article {article_count}: {headline[:50]}")
 
         record = {
             "news_id": str(uuid.uuid4()),
@@ -136,12 +146,9 @@ def structuring_data(news_list, name):
         news_records.append(record)
 
         if article_count % 10 == 0:
-            print(f"Processed {article_count} articles")
-
-        # print("bottom")
+            logger.info(f"Processed {article_count} articles")
 
         time.sleep(2)  # polite scraping
-
 
     Path('Data/raw/moneycontrol/').mkdir(parents=True, exist_ok=True)
     with open(f'Data/raw/moneycontrol/{name}.json','w', encoding='utf-8') as f:
@@ -149,21 +156,29 @@ def structuring_data(news_list, name):
 
     with open(f'Data/raw/moneycontrol/{name}.json') as file:
         d = json.load(file)
+    
+    logger.info(f"Completed: {article_count} total, {failed_fetches} failed, {date_missing} missing dates")
+    logger.info(f"Saved to Data/raw/moneycontrol/{name}.json")
 
 
 
 def jsonTocsv(name):
-    with open(f'Data/raw/moneycontrol/{name}.json') as file:
-        d = json.load(file)
-    Path('Data/processed/extracted_news/').mkdir(parents=True, exist_ok=True)
-    present_df = open(f'Data/processed/extracted_news/{name}.csv', "w", newline='')
-    cw = csv.writer(present_df)
-    c = 0
-    for data in d:
-        if c == 0:
-            header = data.keys()
-            cw.writerow(header)
-            c += 1
-        cw.writerow(data.values())
+    logger.info(f"Converting JSON to CSV for '{name}'")
+    try:
+        with open(f'Data/raw/moneycontrol/{name}.json') as file:
+            d = json.load(file)
+        Path('Data/processed/extracted_news/').mkdir(parents=True, exist_ok=True)
+        present_df = open(f'Data/processed/extracted_news/{name}.csv', "w", newline='')
+        cw = csv.writer(present_df)
+        c = 0
+        for data in d:
+            if c == 0:
+                header = data.keys()
+                cw.writerow(header)
+                c += 1
+            cw.writerow(data.values())
 
-    present_df.close()
+        present_df.close()
+        logger.info(f"Successfully saved CSV to Data/processed/extracted_news/{name}.csv")
+    except Exception as e:
+        logger.error(f"Error converting JSON to CSV: {e}", exc_info=True)

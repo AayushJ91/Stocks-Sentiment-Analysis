@@ -1,6 +1,10 @@
 import requests
 from bs4 import BeautifulSoup, Comment
+import logging
+from .logger import setup_logger
+
 # Extracting the links of every page for a stock from moneycontrol
+logger = setup_logger("headlines_scraper")
 
 HEADERS_PAGES = {
     "User-Agent": (
@@ -20,6 +24,7 @@ def headlines_extractor(url):
     page = 1
     all_news = []
     seen_links = set()
+    logger.info(f"Starting scrape for URL: {url}")
 
     while True:
         if page == 1:
@@ -27,20 +32,19 @@ def headlines_extractor(url):
         else:
             using_url = f"{url}/page-{page}/"
 
-        print(f"Scraping page {page}: {using_url}")
-        # print(f"hi")
+        logger.info(f"Scraping page {page}: {using_url}")
 
         response = session.get(using_url, timeout=10)
 
         if response.status_code != 200:
-            print("Stopping — bad response")
+            logger.warning(f"Bad response on page {page}: {response.status_code}")
             break
 
         soup = BeautifulSoup(response.text, "html.parser")
         articles = soup.find_all("li", class_="clearfix")
 
         if not articles:
-            print("No articles found. Stopping.")
+            logger.info("No articles found. Stopping.")
             break
 
         new_found = False
@@ -61,12 +65,15 @@ def headlines_extractor(url):
                         "link": link
                     })
 
+        logger.info(f"Page {page}: Found {len(articles)} articles, {len(seen_links)} unique so far")
+        
         if not new_found:
-            print("No new articles. Reached last page.")
+            logger.info("No new articles. Reached last page.")
             break
 
         page += 1
 
+    logger.info(f"Scraping complete. Total unique articles: {len(all_news)}")
     return all_news
 
 
@@ -92,7 +99,7 @@ def headlines_extractor_playwright(base_url):
             else:
                 url = f"{base_url}/page-{page}/"
 
-            print(f"Scraping page {page}: {url}")
+            logger.info(f"Scraping page {page}: {url}")
 
             page_browser.goto(url, timeout=60000)
 
@@ -102,7 +109,7 @@ def headlines_extractor_playwright(base_url):
             articles = soup.find_all("li", class_="clearfix")
 
             if not articles:
-                print("No articles found. Stopping.")
+                logger.info("No articles found. Stopping.")
                 break
 
             new_found = False
